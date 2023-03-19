@@ -1,0 +1,7 @@
+[project]
+name = "unified_simulators"
+description = "Collection of robot simulators with wrapper providing same API"
+version = "0.1.0"
+authors = [
+    { name = "Mederic Fourmy", email = "mederic.fourmy@gmail.com" }
+]
