@@ -27,7 +27,7 @@ def test_run_simulator(Simulator, conf):
 
     dt_sim = 1./1000
     # JSID OK
-    Kp = 200
+    Kp = 100
     Kd = 2*np.sqrt(Kp)
     # PD+ OK
     # Kp = 40
@@ -36,11 +36,17 @@ def test_run_simulator(Simulator, conf):
 
     N_sim = int(dur_sim/dt_sim)
 
+    # gravity = np.zeros(3)
+    # gravity = np.array([0,0,-9.81])
     robot = pin.RobotWrapper.BuildFromURDF(conf.urdf_path, conf.package_dirs)
+    # robot.model.gravity.linear = gravity
 
     sim = Simulator(dt_sim, conf.urdf_path, conf.package_dirs,
                     conf.joint_names, visual=True)
-    sim.set_state(conf.q0+0.1, conf.v0)
+    # sim.set_gravity(gravity)
+    # q_init = conf.q0
+    q_init = conf.q0 + 0.1  # little offset from stable position
+    sim.set_state(q_init, conf.v0)
 
 
     print('\n==========================')
@@ -70,9 +76,15 @@ def test_run_simulator(Simulator, conf):
 
         #########################
         # Joint Space Inverse Dynamics
-        qd = - Kp*(q - conf.q0) - Kd*(v - conf.v0)
-        tau = pin.rnea(robot.model, robot.data, q, v, qd)
+        ddqd = - Kp*(q - conf.q0) - Kd*(v - conf.v0)
+        # M*ddq + C(q)dq + g(q) = tau
+        tau = pin.rnea(robot.model, robot.data, q, v, ddqd)
         #########################
+        # print(tau)
+        # [ 0.    -3.988 -0.644 22.021  0.634  2.278  0.   ]
+        # tau [-0.036 -5.268 -0.722 24.31   0.681  2.419  0.009]  # tsid
+        # [-7.33564119e-02 -1.65509051e+01 -9.86897279e-01  4.97563905e+01  1.07325654e+00  5.49826615e+00  2.55860554e-03]
+
 
         tau_noise = noise_tau_scale*(np.random.random(robot.nv) - 0.5)
         tau += tau_noise

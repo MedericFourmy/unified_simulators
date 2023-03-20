@@ -21,7 +21,6 @@ class PybulletSim:
         self.nq = self.robot.nq
         self.nv = self.robot.nv
         self.nj = len(joint_names)
-        self.pinocchio_robot = self.robot
         self.tau_fext = np.zeros(self.robot.nv)
 
         # Pybullet setup
@@ -31,8 +30,7 @@ class PybulletSim:
         planeId = pb.loadURDF("plane.urdf")
         robot_id = pb.loadURDF(urdf_path, base_pose[:3], base_pose[3:])
         self.robot_id = robot_id
-        print('\n\n\n\n\n\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\nself.robot.model.gravity.linear')
-        print(self.robot.model.gravity.linear)
+        # by default, use same gravity as the pinocchio model
         pb.setGravity(*self.robot.model.gravity.linear)
 
         # Mapping between both models
@@ -46,9 +44,11 @@ class PybulletSim:
         self.bullet_joint_ids = np.array(
             [bullet_joint_map[name] for name in joint_names]
         )
+        
         self.pinocchio_joint_ids = np.array(
             [self.robot.model.getJointId(name) for name in joint_names]
         )
+
 
         self.pin2bullet_joint_only_array = []
         # skip the universe joint

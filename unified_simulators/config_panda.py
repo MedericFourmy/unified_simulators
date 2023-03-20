@@ -1,7 +1,9 @@
 import numpy as np
 
 # urdf_path = "/home/mfourmy/catkin_ws/src/panda_torque_mpc/res/panda_inertias_nohand_copy.urdf"
-urdf_path = "/home/mfourmy/catkin_ws/src/panda_torque_mpc/res/panda_inertias.urdf"
+# urdf_path = "/home/mfourmy/catkin_ws/src/panda_torque_mpc/res/panda_inertias.urdf"
+urdf_path = "/home/mfourmy/catkin_ws/src/panda_torque_mpc/res/panda_inertias_copy_no_joint_sc.urdf"
+# urdf_path = "/home/mfourmy/catkin_ws/src/panda_torque_mpc/res/panda_inertias_nohand.urdf"
 package_dirs = ["/home/mfourmy/catkin_ws/src/franka_ros/"]
 
 
