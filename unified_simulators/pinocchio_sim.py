@@ -23,6 +23,9 @@ class PinocchioSim:
 
         self.pin_integrate = partial(pin.integrate, self.robot.model)
 
+    def set_gravity(self, g):
+        self.robot.model.gravity.linear = g
+
     def get_state(self):
         # Make a explicit copies to avoid silly blinders
         return self.q.copy(), self.dq.copy(), self.ddq.copy()

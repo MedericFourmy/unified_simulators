@@ -6,7 +6,7 @@ import pybullet_data
 
 class PybulletSim:
 
-    def __init__(self, dt_sim, urdf_path, package_dirs, joint_names, base_pose=[0, 0, 0, 0, 0, 0, 1], visual=True):
+    def __init__(self, dt_sim, urdf_path, package_dirs, joint_names, base_pose=[0,0,0, 0,0,0,1], visual=True):
         """Initializes the wrapper.
 
         Simplified version of
@@ -31,6 +31,8 @@ class PybulletSim:
         planeId = pb.loadURDF("plane.urdf")
         robot_id = pb.loadURDF(urdf_path, base_pose[:3], base_pose[3:])
         self.robot_id = robot_id
+        print('\n\n\n\n\n\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\nself.robot.model.gravity.linear')
+        print(self.robot.model.gravity.linear)
         pb.setGravity(*self.robot.model.gravity.linear)
 
         # Mapping between both models
@@ -62,6 +64,9 @@ class PybulletSim:
             pb.VELOCITY_CONTROL,
             forces=np.zeros(self.nj),
         )
+
+    def set_gravity(self, g):
+        pb.setGravity(*g)
 
     def get_state(self):
         """Returns a pinocchio-like representation of the q, dq matrices. Note that the base velocities are expressed in the base frame.
@@ -142,4 +147,5 @@ class PybulletSim:
 if __name__ == '__main__':
     from utils import test_run_simulator
     import config_panda as conf
+    np.set_printoptions(linewidth=150)
     test_run_simulator(PybulletSim, conf)
