@@ -1,11 +1,12 @@
 import time
 import numpy as np
 import pinocchio as pin
+from example_robot_data import load
 
 
-def test_run_simulator(Simulator, conf):
+def test_run_simulator(Simulator, robot_name, fixed_joints):
 
-    dur_sim = 20.0
+    dur_sim = 5.0
 
     noise_tau_scale = 0.0
 
@@ -33,21 +34,32 @@ def test_run_simulator(Simulator, conf):
     # Kp = 40
     # Kd = 2*np.sqrt(Kp)
 
-
     N_sim = int(dur_sim/dt_sim)
 
-    # gravity = np.zeros(3)
-    # gravity = np.array([0,0,-9.81])
-    robot = pin.RobotWrapper.BuildFromURDF(conf.urdf_path, conf.package_dirs)
-    # robot.model.gravity.linear = gravity
+    robot = load('panda')
+    fixed_ids = [robot.model.getJointId(jname) for jname in fixed_joints]
 
-    sim = Simulator(dt_sim, conf.urdf_path, conf.package_dirs,
-                    conf.joint_names, visual=True)
-    # sim.set_gravity(gravity)
-    # q_init = conf.q0
-    q_init = conf.q0 + 0.1  # little offset from stable position
-    sim.set_state(q_init, conf.v0)
+    # Ugly code to resize model and q0
+    rmodel, [gmodel_col, gmodel_vis] = pin.buildReducedModel(
+            robot.model, [robot.collision_model, robot.visual_model],
+            fixed_ids, robot.q0,
+        )
+    # q0 = robot.q0
+    robot = pin.RobotWrapper(rmodel, gmodel_col, gmodel_vis)
+    # non_fixed_ids = np.array([idx for idx in range(len(q0)) if idx not in fixed_ids])
+    # non_fixed_ids = non_fixed_ids[1:] - 1  # remove universe
+    # robot.q0 = q0[non_fixed_ids]
+    robot.q0 = robot.model.referenceConfigurations['default']
+    v0 = np.zeros(robot.model.nv)
 
+    
+    sim = Simulator()
+    sim.init(dt_sim, robot_name, fixed_joints, visual=True)
+    
+    q_init = robot.q0.copy() + 0.4  # little offset from stable position
+    v_init = v0.copy() + 0.5
+    x_init = np.concatenate([q_init, v_init]) 
+    sim.setState(x_init)
 
     print('\n==========================')
     print('Begin simulation + control')
@@ -60,7 +72,8 @@ def test_run_simulator(Simulator, conf):
     for i in range(N_sim):
         ts = i*dt_sim
         t1 = time.time()
-        q, v, dv = sim.get_state()
+        x = sim.getState()
+        q, v = x[:rmodel.nq], x[robot.model.nq:]
 
         # # ########################
         # # tau_ff = pin.computeGeneralizedGravity(robot.model, robot.data, q)
@@ -69,14 +82,14 @@ def test_run_simulator(Simulator, conf):
         # # Pure feedforward
         # # tau = tau_ff
         # # PD
-        # # tau = - Kp*(q - conf.q0) - Kd*(v - conf.v0)
+        # # tau = - Kp*(q - conf.q0) - Kd*(v - v0)
         # # PD+
-        # tau = tau_ff - Kp*(q - conf.q0) - Kd*(v - conf.v0)
+        # tau = tau_ff - Kp*(q - conf.q0) - Kd*(v - v0)
         # # ########################
 
         #########################
         # Joint Space Inverse Dynamics
-        ddqd = - Kp*(q - conf.q0) - Kd*(v - conf.v0)
+        ddqd = - Kp*(q - robot.q0) - Kd*(v - v0)
         # M*ddq + C(q)dq + g(q) = tau
         tau = pin.rnea(robot.model, robot.data, q, v, ddqd)
         #########################
@@ -90,11 +103,10 @@ def test_run_simulator(Simulator, conf):
         tau += tau_noise
 
         if t1_fext < ts < t2_fext:
-            sim.apply_external_force(
+            sim.applyExternalForce(
                 fext, frame_name, rf_frame=pin.LOCAL_WORLD_ALIGNED)
 
-        sim.send_joint_command(tau)
-        sim.step_simulation()
+        sim.step(tau)
 
         delay = time.time() - t1
         if delay < dt_sim:
