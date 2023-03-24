@@ -137,30 +137,45 @@ class PybulletSim:
         ...]
         """
         actuated_joint_index_start = 1 + int(self.free_flyer)
-        self.bulletCtrlJointsInPinOrder = [
+        self.bulletCtrlJointsInPinOrder = np.array([
             self.bullet_names2indices[n] for n in self.robot.model.names[actuated_joint_index_start:]
-        ]
+        ])
 
     ################################################################################
 
     def freeze(self, fixed_joint_names):
+        """
+        TODO: not tested for free flyers
+        """
 
-        fixed_jids = [self.robot.model.getJointId(jname) for jname in fixed_joint_names]
+        fixed_jids = np.array([self.robot.model.getJointId(jname) for jname in fixed_joint_names])
+        fixed_jids_min_universe = fixed_jids - 1
+        q0_fixed = self.robot.q0[fixed_jids_min_universe]
+        nq_minus_nqa = 7 if self.free_flyer else 0 
+        fixed_jids_pyb = self.bulletCtrlJointsInPinOrder[nq_minus_nqa+fixed_jids_min_universe]
 
+        # Build a new reduced model
         self.rmodel_full = self.robot.model
         rmodel, [gmodel_col, gmodel_vis] = pin.buildReducedModel(
             self.rmodel_full, [self.robot.collision_model, self.robot.visual_model],
-            fixed_jids, self.robot.q0,
+            fixed_jids.tolist(), self.robot.q0,
         )
-
         self.robot = pin.RobotWrapper(rmodel, gmodel_col, gmodel_vis)
+
+        # Activate position control on the fixed joints so that they stay put in pybullet
+        pyb.setJointMotorControlArray(
+            self.robotId,
+            jointIndices=fixed_jids_pyb,
+            controlMode=pyb.POSITION_CONTROL,
+            targetPositions=q0_fixed,
+        )
 
         self.setPinocchioFinalizationTricks()
         self.setBulletFinalizationTrics()
 
     def setTorqueControlMode(self):
         """
-        Disable default position controler in torque controlled joints
+        Disable default position controller in torque controlled joints
         Default controller will take care of other joints
         """
         pyb.setJointMotorControlArray(
@@ -264,7 +279,9 @@ class PybulletSim:
 if __name__ == "__main__":
     dt_sim = 1e-3
     robot_name = 'panda'
-    fixed_joints = ['panda_finger_joint1', 'panda_finger_joint2']
+    fixed_indexes = []
+    # fixed_indexes = [2,5,6,7]
+    fixed_joints =  [f'panda_joint{i}' for i in fixed_indexes] + ['panda_finger_joint1', 'panda_finger_joint2']
     # fixed_joints = None
 
     from utils import test_run_simulator

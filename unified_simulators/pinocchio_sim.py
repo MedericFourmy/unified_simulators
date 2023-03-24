@@ -134,7 +134,9 @@ class PinocchioSim:
 if __name__ == "__main__":
     dt_sim = 1e-3
     robot_name = 'panda'
-    fixed_joints = ['panda_finger_joint1', 'panda_finger_joint2']
+    fixed_indexes = []
+    # fixed_indexes = [2,5,6,7]
+    fixed_joints =  [f'panda_joint{i}' for i in fixed_indexes] + ['panda_finger_joint1', 'panda_finger_joint2']
     # fixed_joints = None
 
     from utils import test_run_simulator

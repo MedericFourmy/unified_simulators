@@ -21,7 +21,7 @@ def freezed_robot(robot, fixed_joints):
 
 def test_run_simulator(Simulator, robot_name, fixed_joints):
 
-    dur_sim = 5.0
+    dur_sim = 20.0
 
     noise_tau_scale = 0.0
 
@@ -52,7 +52,8 @@ def test_run_simulator(Simulator, robot_name, fixed_joints):
     N_sim = int(dur_sim/dt_sim)
 
     robot = load('panda')
-    fixed_ids = [robot.model.getJointId(jname) for jname in fixed_joints]
+    fixed_ids = [robot.model.getJointId(jname) for jname in fixed_joints] \
+                if fixed_joints is not None else []
 
     # Ugly code to resize model and q0
     rmodel, [gmodel_col, gmodel_vis] = pin.buildReducedModel(
